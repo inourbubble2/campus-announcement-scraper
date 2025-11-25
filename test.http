@@ -1,0 +1,20 @@
+### Health Check
+GET http://localhost:8000/health
+
+### 1. Insert Test Data
+
+### Variables
+@origin_id = 1
+@host = http://localhost:8000
+
+### 2. Trigger Manual Scrape
+POST {{host}}/api/v1/origins/{{origin_id}}/scrape
+
+### 3. Scrape Date Range
+POST {{host}}/api/v1/origins/{{origin_id}}/scrape-range
+Content-Type: application/json
+
+{
+  "start_date": "2025-11-26",
+  "end_date": "2025-11-26"
+}
