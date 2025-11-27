@@ -3,10 +3,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.origin import TargetOrigin, ScraperType
 from app.models.announcement import Announcement, AnnouncementDetail
+from app.schemas.webhook import Article, ArticleOrigin, ArticleContent
 from app.scrapers.base import BaseScraper, ScrapedItem
 from app.scrapers.common import CommonScraper
 from app.scrapers.scholar import ScholarScraper
-from app.core.clients import RateLimitedClient
+from app.core.clients import RateLimitedClient, RetryableClient
+from app.core.config import settings
 
 class ScraperService:
     def __init__(self):
@@ -17,6 +19,12 @@ class ScraperService:
             headers={
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
+        )
+        self.webhook_client = RetryableClient(
+            base_url=settings.WEBHOOK_BASE_URL,
+            max_retries=3,
+            retry_delay=1.0,
+            timeout=10.0
         )
         self.scrapers = {
             ScraperType.COMMON: CommonScraper(),
@@ -69,6 +77,32 @@ class ScraperService:
             print(f"Failed to fetch detail for {item.url}: {e}")
             raise e
 
+        article = Article(
+            origin=ArticleOrigin(
+                code=origin.code,
+                name=origin.name,
+                target_url=origin.target_url,
+            ),
+            contents=ArticleContent(
+                id=item.id,
+                original_url=item.url,
+                written_at=item.date,
+                link=scraped_detail.title,
+                date=scraped_detail.author,
+                body=scraped_detail.html,
+            )
+        )
+
+        # Send to webhook
+        try:
+            response = await self.webhook_client.post(
+                "/announcements",
+                json={"article": article.model_dump(mode="json")}
+            )
+            print(f"Webhook sent successfully: {response.status_code}")
+        except Exception as e:
+            print(f"Failed to send webhook: {e}")
+
         # Save
         announcement_detail = AnnouncementDetail(url=item.url, html=scraped_detail.html)
         announcement = Announcement(
@@ -84,6 +118,7 @@ class ScraperService:
         )
 
         db.add(announcement)
+        await db.commit()
 
     async def scrape(self, origin: TargetOrigin, db: AsyncSession):
         scraper = self.scrapers.get(origin.scraper_type, self.scrapers[ScraperType.COMMON])
@@ -101,7 +136,6 @@ class ScraperService:
             await self._process_and_save_item(origin, item, scraper, db)
             total_scraped += 1
 
-        await db.commit()
         return total_scraped
 
     async def scrape_range(self, origin: TargetOrigin, start_date: date, end_date: date, db: AsyncSession):
@@ -123,5 +157,4 @@ class ScraperService:
             await self._process_and_save_item(origin, item, scraper, db)
             total_scraped += 1
 
-        await db.commit()
         return total_scraped
