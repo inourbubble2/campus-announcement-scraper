@@ -20,7 +20,7 @@ async def run_scraper_job(origin_id: int):
         stmt = select(TargetOrigin).where(TargetOrigin.id == origin_id)
         result = await session.execute(stmt)
         origin = result.scalar_one_or_none()
-        
+
         if origin:
             print(f"Starting job for {origin.name}")
             await scraper_service.scrape(origin, session)
@@ -31,13 +31,13 @@ async def lifespan(app: FastAPI):
     # Startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     # Load jobs
     async with AsyncSession(engine) as session:
         stmt = select(TargetOrigin)
         result = await session.execute(stmt)
         origins = result.scalars().all()
-        
+
         for origin in origins:
             scheduler.add_job(
                 run_scraper_job,
@@ -64,25 +64,31 @@ async def trigger_scrape(origin_id: int, background_tasks: BackgroundTasks, db: 
     stmt = select(TargetOrigin).where(TargetOrigin.id == origin_id)
     result = await db.execute(stmt)
     origin = result.scalar_one_or_none()
-    
+
     if not origin:
         raise HTTPException(status_code=404, detail="Origin not found")
-    
+
     background_tasks.add_task(run_scraper_job, origin.id)
     return {"message": "Scraping triggered in background"}
 
 @app.post("/api/v1/origins/{origin_id}/scrape-range")
 async def scrape_range(
-    origin_id: int, 
-    request: DateRangeRequest, 
+    origin_id: int,
+    request: DateRangeRequest,
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(TargetOrigin).where(TargetOrigin.id == origin_id)
     result = await db.execute(stmt)
     origin = result.scalar_one_or_none()
-    
+
     if not origin:
         raise HTTPException(status_code=404, detail="Origin not found")
-    
-    count = await scraper_service.scrape_range(origin, request.start_date, request.end_date, db)
+
+    count = await scraper_service.scrape_range(
+        origin=origin,
+        start_page=request.start_page,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        db=db
+    )
     return {"message": f"Scraped {count} items between {request.start_date} and {request.end_date}"}

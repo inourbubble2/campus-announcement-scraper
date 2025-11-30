@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from sqlalchemy import String, Integer, BigInteger, DateTime, Date, Text, ForeignKey
+from sqlalchemy import String, BigInteger, DateTime, Date, Text, ForeignKey, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -9,7 +9,7 @@ class AnnouncementDetail(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     url: Mapped[str] = mapped_column(String(255), nullable=False)
     html: Mapped[str] = mapped_column(Text, nullable=False)
-    
+
     announcement: Mapped["Announcement"] = relationship("Announcement", back_populates="announcement_detail", uselist=False)
 
 class Announcement(Base):
@@ -27,5 +27,6 @@ class Announcement(Base):
     target_url: Mapped[str] = mapped_column(String(255), nullable=False)
     scraping_key: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     major: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    tags: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
 
     announcement_detail: Mapped["AnnouncementDetail"] = relationship("AnnouncementDetail", back_populates="announcement")

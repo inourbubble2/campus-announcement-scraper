@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import date
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 class ScrapedItem(BaseModel):
@@ -13,6 +13,7 @@ class ScrapedDetail(BaseModel):
     title: str
     html: str
     author: str
+    tags: Optional[List[str]] = None
 
 class BaseScraper(ABC):
     @abstractmethod

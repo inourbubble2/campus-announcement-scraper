@@ -57,6 +57,10 @@ class CommonScraper(BaseScraper):
         title = soup.select_one("#contents > div > div.view-bx > div.vw-tibx > h4").text.strip()
         author = soup.select_one("#contents > div > div.view-bx > div.vw-tibx > div > div > span:nth-child(2)").text.strip()
 
+        # Parse hashtags
+        hashtag_elements = soup.select(".hashTag-bx a")
+        tags = [tag.text.strip() for tag in hashtag_elements] if hashtag_elements else None
+
         content = soup.select_one(".vw-con")
         for comment in content.find_all(string=lambda text: isinstance(text, Comment)):
             comment.extract()
@@ -77,4 +81,5 @@ class CommonScraper(BaseScraper):
             title=title,
             html=cleaned_content,
             author=author,
+            tags=tags,
         )

@@ -29,7 +29,8 @@ create table if not exists public.announcement (
     modified_at timestamp not null default now(),
     target_url varchar(255) not null,
     scraping_key varchar(255) unique,
-    major varchar(255)
+    major varchar(255),
+    tags text[]
 );
 
 create table if not exists public.announcement_detail (

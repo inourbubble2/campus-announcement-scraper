@@ -114,6 +114,7 @@ class ScraperService:
             scraping_key=scraping_key,
             written_at=item.date,
             view_count=item.view_count,
+            tags=scraped_detail.tags,
             announcement_detail=announcement_detail
         )
 
@@ -129,22 +130,18 @@ class ScraperService:
             if page > 1:
                 break
 
-            if item.is_notice:
-                print(f"Skipping notice: {item.url}")
-                continue
-
             await self._process_and_save_item(origin, item, scraper, db)
             total_scraped += 1
 
         return total_scraped
 
-    async def scrape_range(self, origin: TargetOrigin, start_date: date, end_date: date, db: AsyncSession):
+    async def scrape_range(self, origin: TargetOrigin, start_page: int, start_date: date, end_date: date, db: AsyncSession):
         scraper = self.scrapers.get(origin.scraper_type, self.scrapers[ScraperType.COMMON])
         total_scraped = 0
 
         print(f"Scraping range: {start_date} ~ {end_date} for {origin.name}")
 
-        async for item, page in self._fetch_items_generator(origin):
+        async for item, page in self._fetch_items_generator(origin, start_page=start_page):
             print(f"Checking item: {origin.code}-{item.id}")
 
             if item.date < start_date:

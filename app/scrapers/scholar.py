@@ -69,4 +69,5 @@ class ScholarScraper(BaseScraper):
             title=title,
             html=cleaned_content,
             author=author,
+            tags=None,
         )
