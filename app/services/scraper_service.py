@@ -93,15 +93,15 @@ class ScraperService:
             )
         )
 
-        # Send to webhook
-        try:
-            response = await self.webhook_client.post(
-                "/announcements",
-                json={"article": article.model_dump(mode="json")}
-            )
-            print(f"Webhook sent successfully: {response.status_code}")
-        except Exception as e:
-            print(f"Failed to send webhook: {e}")
+        # # Send to webhook
+        # try:
+        #     response = await self.webhook_client.post(
+        #         "/announcements",
+        #         json={"article": article.model_dump(mode="json")}
+        #     )
+        #     print(f"Webhook sent successfully: {response.status_code}")
+        # except Exception as e:
+        #     print(f"Failed to send webhook: {e}")
 
         # Save
         announcement_detail = AnnouncementDetail(url=item.url, html=scraped_detail.html)
